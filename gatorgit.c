@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -38,16 +37,15 @@
  */
 
 int gatorgit_init(void) {
-  fs_mkdir(".gatorgit");
+    fs_mkdir(".gatorgit");
 
-  FILE* findex = fopen(".gatorgit/.index", "w");
-  fclose(findex);
+    FILE* findex = fopen(".gatorgit/.index", "w");
+    fclose(findex);
   
-  write_string_to_file(".gatorgit/.prev", "0000000000000000000000000000000000000000");
+    write_string_to_file(".gatorgit/.prev", "0000000000000000000000000000000000000000");
 
-  return 0;
+    return 0;
 }
-
 
 /* gatorgit add <filename>
  * 
@@ -61,32 +59,31 @@ int gatorgit_init(void) {
  */
 
 int gatorgit_add(const char* filename) {
-  FILE* findex = fopen(".gatorgit/.index", "r");
-  FILE *fnewindex = fopen(".gatorgit/.newindex", "w");
+    FILE* findex = fopen(".gatorgit/.index", "r");
+    FILE* fnewindex = fopen(".gatorgit/.newindex", "w");
 
-  char line[FILENAME_SIZE];
-  while(fgets(line, sizeof(line), findex)) {
-    strtok(line, "\n");
-    if (strcmp(line, filename) == 0) {
-      fprintf(stderr, "ERROR: File %s already added\n", filename);
-      fclose(findex);
-      fclose(fnewindex);
-      fs_rm(".gatorgit/.newindex");
-      return 3;
+    char line[FILENAME_SIZE];
+    while (fgets(line, sizeof(line), findex)) {
+        strtok(line, "\n");
+        if (strcmp(line, filename) == 0) {
+            fprintf(stderr, "ERROR: File %s already added\n", filename);
+            fclose(findex);
+            fclose(fnewindex);
+            fs_rm(".gatorgit/.newindex");
+            return 3;
+        }
+
+        fprintf(fnewindex, "%s\n", line);
     }
 
-    fprintf(fnewindex, "%s\n", line);
-  }
+    fprintf(fnewindex, "%s\n", filename);
+    fclose(findex);
+    fclose(fnewindex);
 
-  fprintf(fnewindex, "%s\n", filename);
-  fclose(findex);
-  fclose(fnewindex);
+    fs_mv(".gatorgit/.newindex", ".gatorgit/.index");
 
-  fs_mv(".gatorgit/.newindex", ".gatorgit/.index");
-
-  return 0;
+    return 0;
 }
-
 
 /* gatorgit rm <filename>
  * 
@@ -95,11 +92,41 @@ int gatorgit_add(const char* filename) {
  */
 
 int gatorgit_rm(const char* filename) {
-  
-  /* TODO: Your code here */
+    // Open the .index file for reading
+    FILE* findex = fopen(".gatorgit/.index", "r");
+    if (!findex) {
+        fprintf(stderr, "ERROR: Could not open .index file\n");
+        return 1;
+    }
 
-  return 0;
-  
+    // Temporary file to store updated list
+    FILE* fnewindex = fopen(".gatorgit/.newindex", "w");
+
+    char line[FILENAME_SIZE];
+    int found = 0;
+
+    // Copy all lines except the one to remove
+    while (fgets(line, sizeof(line), findex)) {
+        strtok(line, "\n");  // Remove newline
+        if (strcmp(line, filename) == 0) {
+            found = 1;  // Mark that the file was found
+        } else {
+            fprintf(fnewindex, "%s\n", line);
+        }
+    }
+
+    fclose(findex);
+    fclose(fnewindex);
+
+    if (!found) {
+        fprintf(stderr, "ERROR: File %s not tracked\n", filename);
+        fs_rm(".gatorgit/.newindex");
+        return 1;
+    }
+
+    // Replace original index with the updated version
+    fs_mv(".gatorgit/.newindex", ".gatorgit/.index");
+    return 0;
 }
 
 /* gatorgit commit -m <msg>
@@ -111,31 +138,113 @@ int gatorgit_rm(const char* filename) {
 const char* go_gator = "GOLDEN GATOR!";
 
 int is_commit_msg_ok(const char* msg) {
-  /* TODO: Your code here  */
-  return 0;
+    // Check if the message contains "GOLDEN GATOR!" (without using standard string functions)
+    const char* p = msg;
+    int i = 0;
+
+    while (*p) {
+        if (*p == go_gator[i]) {
+            i++;
+            if (go_gator[i] == '\0') {
+                return 1;  // Found the complete string
+            }
+        } else {
+            i = 0;  // Reset if the sequence breaks
+        }
+        p++;
+    }
+    return 0;  // Not found
 }
 
 void next_commit_id(char* commit_id) {
-  /* TODO: Your code here */
+    // TODO: Implement logic to generate the next commit ID
 }
 
 int gatorgit_commit(const char* msg) {
-  if (!is_commit_msg_ok(msg)) {
-    fprintf(stderr, "ERROR: Message must contain \"%s\"\n", go_gator);
-    return 1;
-  }
+    if (!is_commit_msg_ok(msg)) {
+        fprintf(stderr, "ERROR: Message must contain \"%s\"\n", go_gator);
+        return 1;
+    }
 
-  char commit_id[COMMIT_ID_SIZE];
-  char commit_dir[FILENAME_SIZE];
-  char file_name[FILENAME_SIZE];
-  char line[FILENAME_SIZE];
+    // Generate the next commit ID
+    char commit_id[COMMIT_ID_SIZE + 1];
+    next_commit_id(commit_id);
 
-  
-  return 0;
+    // Create the commit directory inside .gatorgit/
+    char commit_dir[FILENAME_SIZE];
+    sprintf(commit_dir, ".gatorgit/%s", commit_id);
+    printf("Creating directory: %s\n", commit_dir);  // Debug print
+
+    // Use fs_mkdir to create the directory
+    if (fs_mkdir(commit_dir) != 0) {
+        fprintf(stderr, "ERROR: Failed to create directory %s\n", commit_dir);
+        return 1;
+    }
+
+    // Copy tracked files into the new commit directory
+    FILE* findex = fopen(".gatorgit/.index", "r");
+    if (!findex) {
+        fprintf(stderr, "ERROR: Could not open .index file\n");
+        return 1;
+    }
+
+    char filename[FILENAME_SIZE];
+    while (fgets(filename, sizeof(filename), findex)) {
+        filename[strcspn(filename, "\n")] = '\0';  // Remove newline
+
+        char dest[FILENAME_SIZE];
+        sprintf(dest, "%s/%s", commit_dir, filename);
+        printf("Copying %s to %s\n", filename, dest);  // Debug print
+
+        fs_cp(filename, dest);
+    }
+    fclose(findex);
+
+    // Write the commit message to .msg
+    char msg_file[FILENAME_SIZE];
+    sprintf(msg_file, "%s/.msg", commit_dir);
+    write_string_to_file(msg_file, msg);
+
+    // Update the .prev file with the new commit ID
+    write_string_to_file(".gatorgit/.prev", commit_id);
+
+    return 0;
 }
 
-int gatorgit_status() {
-  /* YOUR CODE HERE */
 
-  return 0;
+
+/* gatorgit status
+ *
+ * Print the list of tracked files and the total count.
+ */
+
+int gatorgit_status() {
+    // Open the .index file for reading
+    FILE* findex = fopen(".gatorgit/.index", "r");
+    if (!findex) {
+        fprintf(stderr, "ERROR: Could not open .index file\n");
+        return 1;
+    }
+
+    char line[FILENAME_SIZE];
+    int file_count = 0;
+
+    // Print the header
+    fprintf(stdout, "Tracked files:\n");
+
+    // Read each line from the .index file
+    while (fgets(line, sizeof(line), findex)) {
+        // Remove any trailing newline character
+        line[strcspn(line, "\n")] = '\0';
+
+        // Print the filename and increment the count
+        fprintf(stdout, "  %s\n", line);
+        file_count++;
+    }
+
+    // Print the total number of tracked files
+    fprintf(stdout, "\n%d files total\n", file_count);
+
+    fclose(findex);  // Close the file
+    return 0;  // Return success
 }
