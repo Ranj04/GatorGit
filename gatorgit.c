@@ -176,10 +176,7 @@ int gatorgit_commit(const char* msg) {
     printf("Creating directory: %s\n", commit_dir);  // Debug print
 
     // Use fs_mkdir to create the directory
-    if (fs_mkdir(commit_dir) != 0) {
-        fprintf(stderr, "ERROR: Failed to create directory %s\n", commit_dir);
-        return 1;
-    }
+    fs_mkdir(commit_dir);
 
     // Copy tracked files into the new commit directory
     FILE* findex = fopen(".gatorgit/.index", "r");
