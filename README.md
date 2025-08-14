@@ -6,7 +6,7 @@ Email: rjithendran@sfsu.edu / ranjiv.jithendran@gmail.com
 
 # What is gatorgit?
 
-git is a great tool for managing source code and other files. However, even great tools can be used for evil; what if someone uses it to create git commits with hideous messages. So in this homework, you will be developing your own version of git, which will put an end to such behavior by requiring every commit message to contain the words "GOLDEN GATOR!". ;-)
+git is a great tool for managing source code and other files. 
 
 At its core, gatorgit is essentially a simpler version of git. gatorgit can track individual files in the current working directory (no subdirectories!). It maintains a .gatorgit/ subdirectory containing information about your repository. For each commit that the user makes, a directory is created inside the .gatorgit/ directory (.gatorgit/<ID>, where <ID> is the ID of the commit). The .gatorgit/ directory additionally contains two files: .index (a list of all currently tracked files, one per line, no duplicates) and .prev (contains the ID of the last commit, or 0..0 if there is no commit yet). Each .gatorgit/<ID> directory contains a copy of each tracked file (as well as the .index file) at the time of the commit, a .msg file that contains the commit message (one line) and a .prev file that contains the commit ID of the previous commit.
 
