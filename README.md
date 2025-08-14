@@ -29,9 +29,13 @@ Third commit ID: cccccccccccccccccccccccccccccccccccccccc2
 
 # Files:
 gatorgit.c - This is the file that you will fill in with your implementation of gatorgit.
+
 gatorgit.h - Do not edit - This file contains declarations of various constructs in gatorgit.c along with convenient #defines. See the "Important Numbers" section below.
+
 main.c - Do not edit - Contains the main for gatorgit (which parses command line options and calls into the functions defined in gatorgit.c).
+
 Makefile - Do not edit - This tells the program make how to build your code when you run the make command. This is a convenient alternative to having to repeatedly type long commands involving gcc.
+
 util.h - Do not edit - Contains helper functions that you may wish to use when completing the assignment.
 
 # Other Info: 
